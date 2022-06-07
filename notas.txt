@@ -1,0 +1,94 @@
+Overlay Network
+
+    Hierarchically organized peer-to-peer networks --Not sure if this is the best solution yet
+
+        Notably in unstructured peer-to-peer systems, locating relevant data items
+        can become problematic as the network grows. The reason for this scalability
+        problem is simple: as there is no deterministic way of routing a lookup request
+        to a specific data item, essentially the only technique a node can resort to is
+        searching for the request by means of flooding or randomly walking through
+        the network. As an alternative many peer-to-peer systems have proposed to
+        make use of special nodes that maintain an index of data items.
+
+        There are other situations in which abandoning the symmetric nature
+        of peer-to-peer systems is sensible. Consider a collaboration of nodes that
+        offer resources to each other. For example, in a collaborative content delivery
+        network (CDN), nodes may offer storage for hosting copies of Web documents
+        allowing Web clients to access pages nearby, and thus to access them quickly.
+        What is needed is a means to find out where documents can be stored best.
+
+        In that case, making use of a broker that collects data on resource usage and
+        availability for a number of nodes that are in each other’s proximity will allow
+        to quickly select a node with sufficient resources.
+
+        Nodes such as those maintaining an index or acting as a broker are
+        generally referred to as super peers. As the name suggests, super peers
+        are often also organized in a peer-to-peer network, leading to a hierarchical
+        organization, as explained in Yang and Garcia-Molina [2003]. A simple
+        example of such an organization is shown in Figure 2.20. In this organization,
+        every regular peer, now referred to as a weak peer, is connected as a client to
+        a super peer. All communication from and to a weak peer proceeds through
+        that peer’s associated super peer.
+
+        In many cases, the association between a weak peer and its super peer
+        is fixed: whenever a weak peer joins the network, it attaches to one of the
+        super peers and remains attached until it leaves the network. Obviously, it is
+        expected that super peers are long-lived processes with high availability. To
+        compensate for potential unstable behavior of a super peer, backup schemes
+        can be deployed, such as pairing every super peer with another one and
+        requiring weak peers to attach to both.
+
+        Having a fixed association with a super peer may not always be the best
+        solution. For example, in the case of file-sharing networks, it may be better
+        for a weak peer to attach to a super peer that maintains an index of files
+        that the weak peer is currently interested in. In that case, chances are bigger
+        that when a weak peer is looking for a specific file, its super peer will know
+        where to find it. Garbacki et al. [2010] describe a relatively simple scheme in
+        which the association between weak peer and strong peer can change as weak
+        peers discover better super peers to associate with. In particular, a super peer
+        returning the result of a lookup operation is given preference over other super
+        peers.
+
+        As we have seen, peer-to-peer networks offer a flexible means for nodes
+        to join and leave the network. However, with super-peer networks a new
+        problem is introduced, namely how to select the nodes that are eligible to
+        become super peer. This problem is closely related to the leader-election
+        problem, which we discuss in Section 6.4.
+
+
+6.4 Election Algorithm/Protocols
+
+    Many distributed algorithms require one process to act as coordinator, initiator,
+    or otherwise perform some special role. In general, it does not matter which
+    process takes on this special responsibility, but one of them has to do it. In
+    this section we will look at algorithms for electing a coordinator (using this as
+    a generic name for the special process).
+    If all processes are exactly the same, with no distinguishing characteristics,
+    there is no way to select one of them to be special. Consequently, we will
+    assume that each process P has a unique identifier id ( P ) . In general, elec-
+    tion algorithms attempt to locate the process with the highest identifier and
+    designate it as coordinator. The algorithms differ in the way they locate the
+    coordinator.
+
+
+7.4 Replica management
+
+    A key issue for any distributed system that supports replication is to decide
+    where, when, and by whom replicas should be placed, and subsequently
+    which mechanisms to use for keeping the replicas consistent. The placement
+    problem itself should be split into two subproblems: that of placing replica
+    servers, and that of placing content. The difference is a subtle one and the two
+    issues are often not clearly separated. Replica-server placement is concerned
+    with finding the best locations to place a server that can host (part of) a
+    data store. Content placement deals with finding the best servers for placing
+    content. Note that this often means that we are looking for the optimal
+    placement of only a single data item. Obviously, before content placement can
+    take place, replica servers will have to be placed first.
+    Finding the best server location
+    Where perhaps over a decade ago one could be concerned about where to
+    place an individual server, matters have changed considerably with the advent
+    of the many large-scale data centers located across the Internet. Likewise, con-
+    nectivity continues to improve, making precisely locating servers less critical.
+
+
+    READ THIS ENTIRE CHAPTER IS NEEDED
