@@ -1,8 +1,6 @@
-from email.mime import image
 import sys
 from os import listdir
 from os.path import isfile, join
-import PIL
 import imagehash
 from PIL import Image
 import os
