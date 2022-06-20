@@ -26,7 +26,7 @@ class Client:
         self.sel.register(self.sock, selectors.EVENT_READ, self.receive)
 
     def receive(self,conn):
-        """"receive images"""
+        """receive images"""
 
     def keyboard_data(self,stdin):
 

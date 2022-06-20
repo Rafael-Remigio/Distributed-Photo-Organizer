@@ -1,5 +1,6 @@
 
 
+from ast import Break
 from os import listdir
 import os
 import socket
@@ -7,10 +8,9 @@ from os.path import isfile, join
 import imagehash
 from PIL import Image
 import selectors
-from daemon import imageHashing
+import time
+from src.protocol import CDProto, Message,RegisterMessage
 
-
-sel = selectors.DefaultSelector()
 
 class daemon:
     """Daemon object"""
@@ -21,7 +21,7 @@ class daemon:
         self.port = port
         self.imagesFolder = imagesFolder
         # Events are send back to the given callback
-
+        self.sel = selectors.DefaultSelector()
         # Nodes that have established a connection with this node
         self.nodes_inbound = []  # Nodes that are connect with us N->(US)
 
@@ -30,9 +30,9 @@ class daemon:
 
         # A list of nodes that should be reconnected to whenever the connection was lost
         self.reconnect_to_nodes = []
-
+        self.isMaster = isMaster
         # Create a unique ID for each node if the ID is not given.
-        if not isMaster:
+        if isMaster:
             self.port = 5000
             self.id = "master"
         else:
@@ -42,8 +42,14 @@ class daemon:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.init_server()
 
-        self.localImages = imageHashing(imagesFolder)
+        # PROTOCOL PARA ENVIO DE MENSAGENS E AFINS
+        self.protocol = CDProto()
+        self.connections = {}
 
+        # For image Control 
+        """"Images have as an Identifier their name. The localImages Dict matches the identifier with their respective imagehash"""
+        self.imagesFolder = imagesFolder
+        self.localImages = self.imageHashing(imagesFolder)
 
 
     
@@ -56,8 +62,44 @@ class daemon:
         self.sock.listen(1)
 
 
-    def imageHashing(Folder):
+    def getList(self,dict):
+        list = []
+        for key in dict.keys():
+            list.append(key)
+
+        return list
+    
+    def accept(self,sock, mask):
+        conn, addr = sock.accept()  # Should be ready
+        print('accepted', conn, 'from', addr)
+        self.sel.register(conn, selectors.EVENT_READ, self.read)
+
+    def read(self,conn, mask):
+        mensagem = self.protocol.recv_msg(conn)
+        if mensagem.command == "disconected":
+            self.sel.unregister(conn)
+            print("Closed  " ,conn)    
+            for key, value in self.connections.items():
+                if value == conn:
+                    del self.connections[key]
+                    break
+            return
+        elif mensagem.command == "register":
+            address = (mensagem.host,mensagem.port)
+            self.connections[address] = conn
+            self.protocol.send_msg(conn,self.protocol.connectionUpdate(self.getList(self.connections)))
+            return
+        elif mensagem.command == "ConnectionUpdate":
+            print(mensagem.connections)
+            return
+
+
         
+
+    def imageHashing(self,Folder):
+        """"IMAGE HASHING
+            Will hash all the images from our local folder using the imagehash library
+            """        
         imageHashes = {}  # name : hash
 
     
@@ -65,17 +107,45 @@ class daemon:
     
     
         for currentImage in files:
-            hash = imagehash.average_hash(Image.open(Folder[0] + currentImage))
+            hash = imagehash.average_hash(Image.open(Folder + currentImage))
             if (hash in imageHashes.values()):
                 print("Image  "+ (Folder + currentImage)+" is repeated."+ " It was Removed")
                 os.remove(Folder + currentImage)
                 continue
-            print(currentImage + "   " + hash.__str__())
-            imageHashes[Folder + currentImage] = hash
+            #print(currentImage + "   " + hash.__str__())
+            imageHashes[currentImage] = hash
 
 
         return imageHashes
     
     def loop(self):
         
-        sel.register(self.sock, selectors.EVENT_READ, self.accept)
+        if not self.isMaster:
+            self.MasterSock = self.connect("localhost",5000)
+            self.Register(self.MasterSock,self.host,self.port)
+
+
+        self.sel.register(self.sock, selectors.EVENT_READ, self.accept)
+        while True:
+                events = self.sel.select()
+                for key, mask in events:
+                    callback = key.data
+                    callback(key.fileobj, mask)
+
+
+
+    def Register(self,sock,host,port):
+        mensagem = self.protocol.register(host,port)
+        self.protocol.send_msg(sock,mensagem)
+
+    # Used for debugging as no purpuse, just like as all
+    def sendStr(self,sock: socket,Message):
+        sock.sendall(str.encode(Message))
+
+    def connect(self,host,port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((host,port))
+        sock.setblocking(False)
+        self.sel.register(sock, selectors.EVENT_READ, self.read)
+        return sock
+    
