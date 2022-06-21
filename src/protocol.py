@@ -56,7 +56,7 @@ class CDProto:
 
     def connectionUpdate(cls,connections) -> ConnectionUpdateMessage:
         message = ConnectionUpdateMessage(connections)
-        print(message.toJSON())
+        #print(message.toJSON())
         return message
 
     @classmethod

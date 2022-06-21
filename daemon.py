@@ -9,9 +9,9 @@ if __name__ == "__main__":
         sys.exit()
     print( args[1])
     if not (args[1]=='5000'):
-        d = daemon("localhost",int(args[1]),False,str(args[0]))
+        d = daemon("localhost",int(args[1]),int(args[2]),False,str(args[0]))
     else:
-        d = daemon("localhost",5000,True,str(args[0]))
+        d = daemon("localhost",5000,None,True,str(args[0]))
 
     d.loop()
 

@@ -15,22 +15,17 @@ from src.protocol import CDProto, Message,RegisterMessage
 class daemon:
     """Daemon object"""
 
-    def __init__(self,host: str, port: int,isMaster : bool = False, imagesFolder: str = ""):
+    def __init__(self,host: str, port: int,connectingNode: int,isMaster : bool = False, imagesFolder: str = ""):
                 # Server details, host (or ip) to bind to and the port
         self.host = host
         self.port = port
         self.imagesFolder = imagesFolder
         # Events are send back to the given callback
         self.sel = selectors.DefaultSelector()
-        # Nodes that have established a connection with this node
-        self.nodes_inbound = []  # Nodes that are connect with us N->(US)
 
-        # Nodes that this nodes is connected to
-        self.nodes_outbound = []  # Nodes that we are connected to (US)->N
 
-        # A list of nodes that should be reconnected to whenever the connection was lost
-        self.reconnect_to_nodes = []
         self.isMaster = isMaster
+        self.connectingNode = connectingNode
         # Create a unique ID for each node if the ID is not given.
         if isMaster:
             self.port = 5000
@@ -71,26 +66,39 @@ class daemon:
     
     def accept(self,sock, mask):
         conn, addr = sock.accept()  # Should be ready
-        print('accepted', conn, 'from', addr)
+        #print('accepted', conn, 'from', addr)
         self.sel.register(conn, selectors.EVENT_READ, self.read)
+
+    def SendConnections(self):
+        for i in self.connections.values():
+            self.protocol.send_msg(i,self.protocol.connectionUpdate(self.getList(self.connections)))
 
     def read(self,conn, mask):
         mensagem = self.protocol.recv_msg(conn)
         if mensagem.command == "disconected":
             self.sel.unregister(conn)
-            print("Closed  " ,conn)    
+            #print("Closed  " ,conn)    
             for key, value in self.connections.items():
                 if value == conn:
                     del self.connections[key]
                     break
+            print(self.connections.keys())
             return
         elif mensagem.command == "register":
             address = (mensagem.host,mensagem.port)
             self.connections[address] = conn
-            self.protocol.send_msg(conn,self.protocol.connectionUpdate(self.getList(self.connections)))
+            self.SendConnections()
+            print(self.connections.keys())
+
             return
         elif mensagem.command == "ConnectionUpdate":
-            print(mensagem.connections)
+            #print(mensagem.connections)
+            for i in mensagem.connections:
+                if (i[0],i[1]) not in self.connections and (i[0],i[1]) != (self.host,self.port):
+                    sock = self.connect(i[0],i[1])
+                    self.Register(sock,self.host,self.port)
+            print(self.connections.keys())
+
             return
 
 
@@ -121,8 +129,10 @@ class daemon:
     def loop(self):
         
         if not self.isMaster:
-            self.MasterSock = self.connect("localhost",5000)
+            self.MasterSock = self.connect("localhost",self.connectingNode)
             self.Register(self.MasterSock,self.host,self.port)
+            self.connections[("localhost",self.connectingNode)] = self.MasterSock
+
 
 
         self.sel.register(self.sock, selectors.EVENT_READ, self.accept)
