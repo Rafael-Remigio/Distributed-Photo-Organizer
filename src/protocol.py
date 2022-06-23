@@ -37,7 +37,14 @@ class ConnectionUpdateMessage(Message):
         self.command = "ConnectionUpdate"
         self.connections = connections
 
+class ImageInfo(Message):
+    def __init__(self, images):
+        self.command = "ImageInfo"
+        self.images = str(images)
 
+class RequestInfo(Message):
+    def __init__(self):
+        self.command = "RequestInfo"
 
 
 class CDProto:
@@ -58,6 +65,17 @@ class CDProto:
         message = ConnectionUpdateMessage(connections)
         #print(message.toJSON())
         return message
+
+    
+    def imageInfo(cls,images) -> ImageInfo:
+        """Creates a RegisterMessage object."""
+        message = ImageInfo(images)
+        return message
+    
+    def requestInfo(cls) -> RequestInfo:
+        message = RequestInfo()
+        return message
+
 
     @classmethod
     def send_msg(cls, connection: socket, msg: Message):
@@ -83,6 +101,11 @@ class CDProto:
                 return RegisterMessage(jason['host'],jason['port'])
             if jason['command'] == "ConnectionUpdate":
                 return ConnectionUpdateMessage(jason['connections'])
+            if jason['command'] == "ImageInfo":
+                return ImageInfo(jason['images'])
+            if jason['command'] == "RequestInfo" :
+                return RequestInfo()
+
 
 
 

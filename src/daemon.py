@@ -9,7 +9,9 @@ import imagehash
 from PIL import Image
 import selectors
 import time
-from src.protocol import CDProto, Message,RegisterMessage
+import ast
+from requests import request
+from src.protocol import CDProto, Message,RegisterMessage, RequestInfo
 
 
 class daemon:
@@ -42,7 +44,20 @@ class daemon:
         self.connections = {}
 
         # For image Control 
-        """"Images have as an Identifier their name. The localImages Dict matches the identifier with their respective imagehash"""
+#        Images have as an Identifier their name. The localImages Dict matches the identifier with their respective imagehash
+#        -----------------------
+#            UPDATE----> Now localImages will actually contain matches the identifier with their respective imagehash but also size of the image and Number of colors;
+#            PIL.Image.size
+#            im = Image.open(r"C:\Users\System-Pc\Desktop\lion.png").convert("L") 
+#            im1 = Image.Image.getcolors(im) 
+#            dict = {id: [hash,with,height,numberofcolors]}
+        
+#           Update on this
+
+#           Actually this is Dumb I should just use the size of bytes in a image
+#           The more bytes it has the more information it holds the better it is so we keep that one in the DS
+
+
         self.imagesFolder = imagesFolder
         self.localImages = self.imageHashing(imagesFolder)
 
@@ -98,8 +113,13 @@ class daemon:
                     sock = self.connect(i[0],i[1])
                     self.Register(sock,self.host,self.port)
             print(self.connections.keys())
+        elif mensagem.command == "ImageInfo":
+            d = ast.literal_eval(mensagem.images)
+            print(d)
 
-            return
+        elif mensagem.command == "RequestInfo":
+            self.SendImageInfo(conn)
+            
 
 
         
@@ -112,19 +132,21 @@ class daemon:
 
     
         files = [f for f in listdir(Folder) if isfile(join(Folder, f))]
-    
+
     
         for currentImage in files:
             hash = imagehash.average_hash(Image.open(Folder + currentImage))
-            if (hash in imageHashes.values()):
+            if (hash.__str__() in imageHashes.values()):
                 print("Image  "+ (Folder + currentImage)+" is repeated."+ " It was Removed")
                 os.remove(Folder + currentImage)
                 continue
             #print(currentImage + "   " + hash.__str__())
-            imageHashes[currentImage] = hash
+            imageHashes[currentImage] =  hash.__str__()
 
 
+        #print(imageHashes)
         return imageHashes
+    
     
     def loop(self):
         
@@ -132,6 +154,7 @@ class daemon:
             self.MasterSock = self.connect("localhost",self.connectingNode)
             self.Register(self.MasterSock,self.host,self.port)
             self.connections[("localhost",self.connectingNode)] = self.MasterSock
+            self.RequestImageInfo(self.MasterSock)
 
 
 
@@ -146,6 +169,16 @@ class daemon:
 
     def Register(self,sock,host,port):
         mensagem = self.protocol.register(host,port)
+        self.protocol.send_msg(sock,mensagem)
+
+        self.SendImageInfo(sock)
+
+    def SendImageInfo(self, sock):
+        mensagem = self.protocol.imageInfo(self.localImages)
+        self.protocol.send_msg(sock,mensagem)
+
+    def RequestImageInfo(self,sock):
+        mensagem = self.protocol.requestInfo()
         self.protocol.send_msg(sock,mensagem)
 
     # Used for debugging as no purpuse, just like as all
