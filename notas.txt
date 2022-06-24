@@ -92,3 +92,37 @@ Overlay Network
 
 
     READ THIS ENTIRE CHAPTER IS NEEDED
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+
+Identificação unívoca de uma dada imagem
+    Imagens são chamadas por um identificador pelo cliente mas na rede são mapeados os hashes aos identificadores de modo a garantir a Identificação unívoca
+
+Transferência de imagem entre nós
+    Feita atraves de sockets TCP e de um protocolo de mensagens implementado
+
+Pesquisa por um dado identificador
+
+Eficiência de armazenamento
+    imagens com o mesmo hash são eliminadas por ordem de quem tem a imagem melhor (melhor neste caso eu usei Qual imagem ocupa mais bytes dai ter mais info)
+
+Fault Tolerance
+    A rede continua estavel com a remoção de qualquer nó e nos podem ser adicionados atraves de qualque nó da rede
+    Quando um nó falha este um nó designado tranforma a replica da sua imagem numa imagem sua, avisa a rede e designa quem terá a responsabilidade na rede de replicar aquela imagem
+
+Escalabilidade
+
+    Adição de SuperPeers
+    Caching
+
+LoadBalancing 
+
+    Com as replicas enviar para quem tem menos ou fazer round robin
+
+

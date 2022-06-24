@@ -5,6 +5,7 @@ from os import listdir
 import os
 import socket
 from os.path import isfile, join
+from webbrowser import get
 import imagehash
 from PIL import Image
 import selectors
@@ -59,8 +60,7 @@ class daemon:
 
 
         self.imagesFolder = imagesFolder
-        self.localImages = self.imageHashing(imagesFolder)
-
+        self.localImages, self.hashes = self.imageHashing(imagesFolder)
 
     
     def init_server(self) -> None:
@@ -112,17 +112,32 @@ class daemon:
                 if (i[0],i[1]) not in self.connections and (i[0],i[1]) != (self.host,self.port):
                     sock = self.connect(i[0],i[1])
                     self.Register(sock,self.host,self.port)
+                    self.SendImageInfo(sock)
+                    self.RequestImageInfo(sock)
             print(self.connections.keys())
         elif mensagem.command == "ImageInfo":
             d = ast.literal_eval(mensagem.images)
-            print(d)
+            for i in d.keys():
+                hashcode  = d.get(i)[0]
+                size = d.get(i)[1]
+                for localim in self.localImages.values():
+                    if hashcode == localim[0]:
+                        if size > localim[1]:
+                            self.deletefromhere(hashcode)
+                        elif size < localim[1]:
+                            self.deletefromThem(hashcode)
+                        else:
+                            self.deletefromhere(hashcode)
 
+                        break
         elif mensagem.command == "RequestInfo":
             self.SendImageInfo(conn)
+        elif mensagem.command == "DeleteImage":
+            self.deleteImage(mensagem.imageName)
             
 
 
-        
+    
 
     def imageHashing(self,Folder):
         """"IMAGE HASHING
@@ -130,7 +145,7 @@ class daemon:
             """        
         imageHashes = {}  # name : hash
 
-    
+        hashes = []
         files = [f for f in listdir(Folder) if isfile(join(Folder, f))]
 
     
@@ -143,9 +158,13 @@ class daemon:
             #print(currentImage + "   " + hash.__str__())
             imageHashes[currentImage] =  hash.__str__()
 
+        for i in imageHashes.keys():
+            tamanho = os.stat(Folder + i).st_size
+            hashes.append(imageHashes.get(i))
+            imageHashes[i] = [imageHashes.get(i),tamanho]
 
         #print(imageHashes)
-        return imageHashes
+        return imageHashes ,hashes
     
     
     def loop(self):
@@ -165,6 +184,31 @@ class daemon:
                     callback = key.data
                     callback(key.fileobj, mask)
 
+    def deleteImage(self,imageName):
+        self.localImages.pop(imageName)
+        print("Deleting from here "+ imageName)
+        #os.remove(self.imagesFolder + imageName)
+
+
+
+    def deletefromhere(self,hashcode):
+        print("Deleting from here "+hashcode)
+
+        for key,value in self.localImages.items():
+            if value[0] == hashcode:
+                #DeleteActualFIle
+                #os.remove(self.imagesFolder + key)
+
+
+                #Remove From Dict
+                self.localImages.pop(key)
+                break
+
+
+
+    def deletefromThem(self,hashcode):
+        print("Deleting from THe other Node "+hashcode)
+        
 
 
     def Register(self,sock,host,port):

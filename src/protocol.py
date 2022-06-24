@@ -1,3 +1,4 @@
+from email import message
 import json
 from multiprocessing.dummy import connection
 from socket import socket
@@ -46,6 +47,10 @@ class RequestInfo(Message):
     def __init__(self):
         self.command = "RequestInfo"
 
+class DeleteOnYourEnd(Message):
+    def __init__(self,imageName):
+        self.command = "DeleteImage"
+        self.imageName = imageName
 
 class CDProto:
     """Computação Distribuida Protocol."""
@@ -76,6 +81,9 @@ class CDProto:
         message = RequestInfo()
         return message
 
+    def Deleteimages(cls,imageName) -> DeleteOnYourEnd:
+        message = DeleteOnYourEnd(imageName)
+        return message
 
     @classmethod
     def send_msg(cls, connection: socket, msg: Message):
@@ -105,6 +113,8 @@ class CDProto:
                 return ImageInfo(jason['images'])
             if jason['command'] == "RequestInfo" :
                 return RequestInfo()
+            if jason['command'] == "DeleteImage" :
+                return DeleteOnYourEnd(jason['imageName'])
 
 
 
