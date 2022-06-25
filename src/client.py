@@ -1,9 +1,12 @@
+import base64
+from io import BytesIO
 import socket
 import selectors
 import os
 import socket
 import sys
 import fcntl
+from PIL import Image
 
 from attr import s
 from src.protocol import CDProto, ListImage, Message,RegisterMessage, RequestInfo
@@ -43,7 +46,10 @@ class Client:
             print("List of Images is")
             for i in mensagem.list:
                 print("\t"+i)
-
+        elif mensagem.command == "NotFound":
+            print("No such Image")
+        elif mensagem.command == "ReceiveImage":
+            Image.open(BytesIO(base64.b64decode(str.encode(mensagem.image)))).show()
     def keyboard_data(self,stdin):
 
         input = format(stdin.read())
@@ -53,6 +59,9 @@ class Client:
             self.protocol.send_msg(self.sock,mensagem)
         elif input[0:4] == '/get': #get imageName
             """get image"""
+            mensagem = self.protocol.getImage(input.split(" ")[1].rstrip("\n"))
+            self.protocol.send_msg(self.sock,mensagem)
+
         elif input[0:5] == "/exit":
             sys.exit()
         elif input[0:5] == "/help":

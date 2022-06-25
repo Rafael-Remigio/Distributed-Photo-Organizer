@@ -13,6 +13,7 @@ import time
 import ast
 from requests import request
 from src.protocol import CDProto, Message,RegisterMessage, RequestInfo
+import base64
 
 
 class daemon:
@@ -102,6 +103,8 @@ class daemon:
 
     def read(self,conn, mask):
         mensagem = self.protocol.recv_msg(conn)
+        if mensagem == None:
+            return
         if mensagem.command == "disconected":
             self.sel.unregister(conn)
             #print("Closed  " ,conn)    
@@ -164,8 +167,28 @@ class daemon:
             lista = self.imagesinNetwork.keys()
             mensagem = self.protocol.ListOfImages(list(lista))
             self.protocol.send_msg(conn,mensagem)
+        elif mensagem.command == "GetImageRequest":
+            if mensagem.imageName not in list(self.imagesinNetwork.keys()):
+                self.protocol.send_msg(conn,self.protocol.notfound())
+                return
+            if mensagem.imageName in list(self.localImages.keys()):
+                encodedImg = self.imageToText(mensagem.imageName)
+                message = self.protocol.actualImage(encodedImg)
+                self.protocol.send_msg(conn,message)
+            else:
+                array = self.imagesinNetwork.get(mensagem.imageName)
+                for key,value in self.clientConnections.items():
+                    if value == conn:
+                        mensagem = self.protocol.askforImage(mensagem.imageName,key)
+                        self.protocol.send_msg(array[2],mensagem)
+        elif mensagem.command == "AskforImage":
+            encodedImg = self.imageToText(mensagem.imageName)
+            message = self.protocol.sendtoDeamon(encodedImg,mensagem.user)
+            self.protocol.send_msg(conn,message)
+        elif mensagem.command == "sendToDeamon":
+            mens= self.protocol.actualImage(mensagem.imagem)
+            self.protocol.send_msg(self.clientConnections[mensagem.user],mens)
 
-    
 
     def imageHashing(self,Folder):
         """"IMAGE HASHING
@@ -180,7 +203,7 @@ class daemon:
         for currentImage in files:
             hash = imagehash.average_hash(Image.open(Folder + currentImage))
             if (hash.__str__() in imageHashes.values()):
-                print("Image  "+ (Folder + currentImage)+" is repeated."+ " It was Removed")
+                #print("Image  "+ (Folder + currentImage)+" is repeated."+ " It was Removed")
                 os.remove(Folder + currentImage)
                 continue
             #print(currentImage + "   " + hash.__str__())
@@ -271,3 +294,11 @@ class daemon:
         self.sel.register(sock, selectors.EVENT_READ, self.read)
         return sock
     
+    def imageToText(self,imageName):
+        with open(self.imagesFolder + imageName, "rb") as file:
+            encoded_img = base64.b64encode(file.read()).decode('utf-8')
+
+            return encoded_img
+        
+
+

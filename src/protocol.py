@@ -66,6 +66,37 @@ class DeleteOnYourEnd(Message):
         self.command = "DeleteImage"
         self.has= has
 
+class GetImageRequest(Message):
+    def __init__(self,name):
+        self.command = "GetImageRequest"
+        self.imageName = name
+class ReceiveImage(Message):
+    def __init__(self,imagem):
+        self.command = "ReceiveImage"
+        self.image = imagem 
+
+
+class sendToDeamon(Message):
+    def __init__(self,name,user):
+        self.command = "sendToDeamon"
+        self.imagem = name
+        self.user = user
+
+
+class AskforImage(Message):
+    def __init__(self,name,user):
+        self.command = "AskforImage"
+        self.imageName = name
+        self.user = user
+
+class notFound(Message):
+    def __init__(self):
+        self.command = "NotFound"
+
+
+
+
+
 class CDProto:
     """Computação Distribuida Protocol."""
 
@@ -97,9 +128,26 @@ class CDProto:
         message = ImageInfo(images)
         return message
     
+    def getImage(cls,name) -> GetImageRequest:
+        message = GetImageRequest(name)
+        return message
+
     def requestInfo(cls) -> RequestInfo:
         message = RequestInfo()
         return message
+
+    def notfound(cls) -> notFound:
+        message = notFound()
+        return message
+    
+    def actualImage(cls,imagem) -> ReceiveImage:
+        message = ReceiveImage(imagem)
+        return message
+
+    def sendtoDeamon(cls,imagem,user) -> sendToDeamon:
+        message = sendToDeamon(imagem,user)
+        return message
+
 
     def Deleteimages(cls,imagehas) -> DeleteOnYourEnd:
         message = DeleteOnYourEnd(imagehas)
@@ -108,25 +156,34 @@ class CDProto:
     def registerClient(cls,name) -> DeleteOnYourEnd:
         message = RegisterClient(name)
         return message
+    
+    def askforImage(cls,name,user) -> AskforImage:
+        message = AskforImage(name,user)
+        return message
 
     @classmethod
     def send_msg(cls, connection: socket, msg: Message):
         """Sends through a connection a Message object."""
         try:
-            head = len(msg.toJSON()).to_bytes(2, 'big') # por causa do Header, idk man
+            head = len(msg.toJSON()).to_bytes(4, 'big') # por causa do Header, idk man
             connection.sendall(head   +   str.encode(msg.toJSON())) 
         except Exception as error: #this is here because i dont wanna clear the dicts, its to much work
-            print(error)
+            #print(error)
+            pass
 
     @classmethod
     def recv_msg(cls, connection: socket) -> Message:
         """Receives through a connection a Message object."""
-        head = int.from_bytes(connection.recv(2),'big')
+        jmsg = b''
+
+        head = int.from_bytes(connection.recv(4),'big')
         if (head==0):
             return LostConnectionMessage()
-        if head == 0:
-            return None
-        msg = connection.recv(head).decode('utf-8')
+        while len(jmsg) < head:
+                jmsg += connection.recv(head - len(jmsg))
+       
+        msg = jmsg.decode('utf-8')
+
         try:        # for the last test
             jason = json.loads(msg)
             if jason['command'] == "register":
@@ -145,12 +202,24 @@ class CDProto:
                 return GetImageList()
             if jason['command'] == "ListImage":
                 return ListImage(list(jason['list']))
+            if jason['command'] == "GetImageRequest":
+                return GetImageRequest(jason['imageName'])
+            if jason['command'] == "NotFound":
+                return notFound()
+            if jason['command'] == "ReceiveImage":
+                return ReceiveImage(jason["image"])
+            if jason['command'] == "AskforImage":
+                return AskforImage(jason["imageName"],jason["user"])
+            if jason['command'] == "sendToDeamon":
+                return sendToDeamon(jason["imagem"],jason["user"])
+
 
 
 
 
         except Exception as error: # there is an error, tbh i dont know how this works
-                print(error)
+                #print(error)
+                pass
         else:
             return None
 
