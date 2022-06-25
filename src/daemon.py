@@ -61,6 +61,8 @@ class daemon:
 
         self.imagesFolder = imagesFolder
         self.localImages, self.hashes = self.imageHashing(imagesFolder)
+        self.imagesinNetwork = {}
+        self.imagesinNetwork.update(self.imagesmapConn())
 
     
     def init_server(self) -> None:
@@ -71,6 +73,15 @@ class daemon:
         self.sock.settimeout(10.0)
         self.sock.listen(1)
 
+    def imagesmapConn(self):
+        newdict = {}
+        for key,value in self.localImages.items():
+            valor = value
+            valor.append("this")
+            newdict[key] = valor
+            #print(newdict.get(key))
+
+        return newdict
 
     def getList(self,dict):
         list = []
@@ -97,13 +108,13 @@ class daemon:
                 if value == conn:
                     del self.connections[key]
                     break
-            print(self.connections.keys())
+            #print(self.connections.keys())
             return
         elif mensagem.command == "register":
             address = (mensagem.host,mensagem.port)
             self.connections[address] = conn
             self.SendConnections()
-            print(self.connections.keys())
+            #print(self.connections.keys())
 
             return
         elif mensagem.command == "ConnectionUpdate":
@@ -114,9 +125,10 @@ class daemon:
                     self.Register(sock,self.host,self.port)
                     self.SendImageInfo(sock)
                     self.RequestImageInfo(sock)
-            print(self.connections.keys())
+            #print(self.connections.keys())
         elif mensagem.command == "ImageInfo":
             d = ast.literal_eval(mensagem.images)
+            dicio = {}
             for i in d.keys():
                 hashcode  = d.get(i)[0]
                 size = d.get(i)[1]
@@ -124,16 +136,26 @@ class daemon:
                     if hashcode == localim[0]:
                         if size > localim[1]:
                             self.deletefromhere(hashcode)
+                            #print(size , ">" , localim[1])
+                            dicio[i] = [hashcode,size,conn]
                         elif size < localim[1]:
-                            self.deletefromThem(hashcode)
+                            self.deletefromThem(conn,hashcode)
+                            #print(size ,"<" , localim[1])
                         else:
+                            dicio[i] = [hashcode,size,conn]
                             self.deletefromhere(hashcode)
+                            #print("else")
 
                         break
+                    else:
+                        dicio[i] = [hashcode,size,conn]
+
+            self.imagesinNetwork.update(dicio)
+            #print(self.imagesinNetwork)
         elif mensagem.command == "RequestInfo":
             self.SendImageInfo(conn)
         elif mensagem.command == "DeleteImage":
-            self.deleteImage(mensagem.imageName)
+            self.deleteImage(mensagem.has)
             
 
 
@@ -185,19 +207,25 @@ class daemon:
                     callback(key.fileobj, mask)
 
     def deleteImage(self,imageName):
-        self.localImages.pop(imageName)
-        print("Deleting from here "+ imageName)
-        #os.remove(self.imagesFolder + imageName)
+        #print("Deleting from here "+ imageName)
+        for key, value in self.localImages.items():
+            if value[0] == imageName: 
+                #print("Deleting from here "+ key)
+                
+                os.remove(self.imagesFolder + key)
+                
+                self.localImages.pop(key)
+
 
 
 
     def deletefromhere(self,hashcode):
-        print("Deleting from here "+hashcode)
+        #print("Deleting from here "+hashcode)
 
         for key,value in self.localImages.items():
             if value[0] == hashcode:
                 #DeleteActualFIle
-                #os.remove(self.imagesFolder + key)
+                os.remove(self.imagesFolder + key)
 
 
                 #Remove From Dict
@@ -206,9 +234,10 @@ class daemon:
 
 
 
-    def deletefromThem(self,hashcode):
-        print("Deleting from THe other Node "+hashcode)
-        
+    def deletefromThem(self,sock,hashcode):
+        #print("Deleting from THe other Node "+hashcode)
+        mensagem = self.protocol.Deleteimages(hashcode)
+        self.protocol.send_msg(sock,mensagem)
 
 
     def Register(self,sock,host,port):

@@ -7,7 +7,6 @@ if __name__ == "__main__":
     if len(args) <= 0:
         print("INSERT AN IMAGE FOLDER")
         sys.exit()
-    print( args[1])
     if not (args[1]=='5000'):
         d = daemon("localhost",int(args[1]),int(args[2]),False,str(args[0]))
     else:

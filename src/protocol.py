@@ -48,9 +48,9 @@ class RequestInfo(Message):
         self.command = "RequestInfo"
 
 class DeleteOnYourEnd(Message):
-    def __init__(self,imageName):
+    def __init__(self,has):
         self.command = "DeleteImage"
-        self.imageName = imageName
+        self.has= has
 
 class CDProto:
     """Computação Distribuida Protocol."""
@@ -81,8 +81,8 @@ class CDProto:
         message = RequestInfo()
         return message
 
-    def Deleteimages(cls,imageName) -> DeleteOnYourEnd:
-        message = DeleteOnYourEnd(imageName)
+    def Deleteimages(cls,imagehas) -> DeleteOnYourEnd:
+        message = DeleteOnYourEnd(imagehas)
         return message
 
     @classmethod
@@ -114,7 +114,7 @@ class CDProto:
             if jason['command'] == "RequestInfo" :
                 return RequestInfo()
             if jason['command'] == "DeleteImage" :
-                return DeleteOnYourEnd(jason['imageName'])
+                return DeleteOnYourEnd(jason['has'])
 
 
 
