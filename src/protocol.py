@@ -93,6 +93,12 @@ class notFound(Message):
     def __init__(self):
         self.command = "NotFound"
 
+class keepThis(Message):
+    def __init__(self,image,name):
+        self.command = "keepThis"
+        self.image = image
+        self.name = name
+
 
 
 
@@ -160,6 +166,10 @@ class CDProto:
     def askforImage(cls,name,user) -> AskforImage:
         message = AskforImage(name,user)
         return message
+    
+    def keepthisImage(cls,image,name) -> keepThis:
+        message = keepThis(image,name)
+        return message
 
     @classmethod
     def send_msg(cls, connection: socket, msg: Message):
@@ -212,6 +222,8 @@ class CDProto:
                 return AskforImage(jason["imageName"],jason["user"])
             if jason['command'] == "sendToDeamon":
                 return sendToDeamon(jason["imagem"],jason["user"])
+            if jason['command'] == "keepThis":
+                return keepThis(jason["image"])
 
 
 

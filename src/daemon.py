@@ -1,5 +1,4 @@
 
-
 from ast import Break
 from os import listdir
 import os
@@ -65,6 +64,9 @@ class daemon:
         self.localImages, self.hashes = self.imageHashing(imagesFolder)
         self.imagesinNetwork = {}
         self.imagesinNetwork.update(self.imagesmapConn())
+
+
+        self.backupDone = False
 
     
     def init_server(self) -> None:
@@ -155,6 +157,9 @@ class daemon:
                         dicio[i] = [hashcode,size,conn]
 
             self.imagesinNetwork.update(dicio)
+            if self.backupDone == False:
+                self.doBackUp()
+                self.backupDone =True
             #print(self.imagesinNetwork)
         elif mensagem.command == "RequestInfo":
             self.SendImageInfo(conn)
@@ -299,6 +304,9 @@ class daemon:
             encoded_img = base64.b64encode(file.read()).decode('utf-8')
 
             return encoded_img
-        
 
+    def doBackUp(self):
+        for key, value in self.connections.items():
+            #print(key)
+            pass
 
