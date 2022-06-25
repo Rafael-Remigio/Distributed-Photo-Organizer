@@ -28,6 +28,16 @@ class RegisterMessage(Message):
         self.host = host
         self.port = port
 
+class RegisterClient(Message):
+    """Message to register username in the server."""
+    def __init__(self,name):
+        self.command = "registerClient"
+        self.name = name
+
+class GetImageList(Message):
+    def __init__(self):
+        self.command = "GetImageList"
+
 class LostConnectionMessage(Message):
     def __init__(self):
         self.command = "disconected"
@@ -42,7 +52,11 @@ class ImageInfo(Message):
     def __init__(self, images):
         self.command = "ImageInfo"
         self.images = str(images)
-
+    
+class ListImage(Message):
+    def __init__(self,list):
+        self.command = "ListImage"
+        self.list = list
 class RequestInfo(Message):
     def __init__(self):
         self.command = "RequestInfo"
@@ -71,7 +85,13 @@ class CDProto:
         #print(message.toJSON())
         return message
 
-    
+    def imageListing(cls) -> GetImageList():
+        mensagem = GetImageList()
+        return mensagem
+
+    def ListOfImages(cls,lista) -> ListImage:
+        mensagem = ListImage(lista)
+        return mensagem
     def imageInfo(cls,images) -> ImageInfo:
         """Creates a RegisterMessage object."""
         message = ImageInfo(images)
@@ -83,6 +103,10 @@ class CDProto:
 
     def Deleteimages(cls,imagehas) -> DeleteOnYourEnd:
         message = DeleteOnYourEnd(imagehas)
+        return message
+
+    def registerClient(cls,name) -> DeleteOnYourEnd:
+        message = RegisterClient(name)
         return message
 
     @classmethod
@@ -115,7 +139,12 @@ class CDProto:
                 return RequestInfo()
             if jason['command'] == "DeleteImage" :
                 return DeleteOnYourEnd(jason['has'])
-
+            if jason['command'] == "registerClient":
+                return RegisterClient(jason['name'])
+            if jason['command'] == "GetImageList":
+                return GetImageList()
+            if jason['command'] == "ListImage":
+                return ListImage(list(jason['list']))
 
 
 

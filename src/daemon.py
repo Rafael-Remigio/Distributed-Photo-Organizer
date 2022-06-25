@@ -43,6 +43,7 @@ class daemon:
         # PROTOCOL PARA ENVIO DE MENSAGENS E AFINS
         self.protocol = CDProto()
         self.connections = {}
+        self.clientConnections = {}
 
         # For image Control 
 #        Images have as an Identifier their name. The localImages Dict matches the identifier with their respective imagehash
@@ -156,8 +157,13 @@ class daemon:
             self.SendImageInfo(conn)
         elif mensagem.command == "DeleteImage":
             self.deleteImage(mensagem.has)
-            
-
+        elif mensagem.command == "registerClient":
+            self.clientConnections[mensagem.name] = conn
+            #print(self.clientConnections)
+        elif mensagem.command == "GetImageList":
+            lista = self.imagesinNetwork.keys()
+            mensagem = self.protocol.ListOfImages(list(lista))
+            self.protocol.send_msg(conn,mensagem)
 
     
 

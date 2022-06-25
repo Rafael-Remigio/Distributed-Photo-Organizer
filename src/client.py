@@ -5,10 +5,14 @@ import socket
 import sys
 import fcntl
 
+from attr import s
+from src.protocol import CDProto, ListImage, Message,RegisterMessage, RequestInfo
+
+
 class Client:
     """Chat Client process."""
 
-    def __init__(self, name: str = "CLient"):
+    def __init__(self,host,port, name: str = "CLient"):
         """Initializes chat client."""
         self.name = name
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,23 +20,37 @@ class Client:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
         self.sock.setblocking(False)
         self.sel = selectors.DefaultSelector()
+        self.host = host
+        self.port = port
+        self.protocol = CDProto()
+
+        self.connect()
 
 
 
-    def connect(self,host,port):
+
+    def connect(self):
         """Connect to chat server and setup stdin flags."""
-
-        self.sock.connect_ex((host,port))
+        self.sock.connect_ex((self.host,self.port))
         self.sel.register(self.sock, selectors.EVENT_READ, self.receive)
+        print("connected to deamon")
+        mensagemRegisto = self.protocol.registerClient(self.name)
+        self.protocol.send_msg(self.sock,mensagemRegisto)
 
     def receive(self,conn):
-        """receive images"""
+        mensagem = self.protocol.recv_msg(conn)
+        if mensagem.command == "ListImage":
+            print("List of Images is")
+            for i in mensagem.list:
+                print("\t"+i)
 
     def keyboard_data(self,stdin):
 
         input = format(stdin.read())
         if input[0:5] == '/list': #/list
             """LIST ALL IMAGES"""
+            mensagem = self.protocol.imageListing()
+            self.protocol.send_msg(self.sock,mensagem)
         elif input[0:4] == '/get': #get imageName
             """get image"""
         elif input[0:5] == "/exit":
